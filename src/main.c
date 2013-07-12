@@ -12,8 +12,8 @@
 #define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD }
 
 PBL_APP_INFO(MY_UUID,
-             "Futura Weather", "Niknam Moslehi", // Modification of "Roboto Weather" by Martin Rosinski
-             1, 71, /* App version */
+             "Futura Joe", "Joe Clarke", // Modification of Futura Weather by Niknam Moslehi // Modification of "Roboto Weather" by Martin Rosinski
+             1, 01, /* App version */
              RESOURCE_ID_IMAGE_MENU_ICON,
              APP_INFO_WATCH_FACE);
 
@@ -50,8 +50,8 @@ void request_weather();
 
 void failed(int32_t cookie, int http_status, void* context) {
 	if(cookie == 0 || cookie == WEATHER_HTTP_COOKIE) {
-		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-		text_layer_set_text(&weather_layer.temp_layer, "---°   ");
+		//weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
+		//text_layer_set_text(&weather_layer.temp_layer, "---°   ");
 	}
 	
 	link_monitor_handle_failure(http_status);
@@ -101,7 +101,7 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
     /* Need to be static because pointers to them are stored in the text
     * layers.
     */
-    static char date_text[] = "XXX 00";
+    static char date_text[] = "XXX, XXX 00";
     static char hour_text[] = "00";
     static char minute_text[] = ":00";
 
@@ -111,16 +111,11 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
     {		
 	    string_format_time(date_text,
                            sizeof(date_text),
-                           "%a %d",
+                           "%a, %b %d",
                            t->tick_time);
 
-		if (date_text[4] == '0') /* is day of month < 10? */
-		{
-		    /* This is a hack to get rid of the leading zero of the
-			   day of month
-            */
-            memmove(&date_text[4], &date_text[5], sizeof(date_text) - 1);
-		}
+        
+		
         text_layer_set_text(&date_layer, date_text);
     }
 
