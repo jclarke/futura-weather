@@ -6,7 +6,6 @@
 #include "util.h"
 #include "weather_layer.h"
 #include "time_layer.h"
-#include "link_monitor.h"
 #include "config.h"
 
 #define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD }
@@ -55,7 +54,6 @@ void failed(int32_t cookie, int http_status, void* context) {
 	if (failed_count > 10) {
 	  weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 	}
-	link_monitor_handle_failure(http_status);
 }
 
 void success(int32_t cookie, int http_status, DictionaryIterator* received, void* context) {
@@ -81,7 +79,6 @@ void success(int32_t cookie, int http_status, DictionaryIterator* received, void
 	if (email_tuple) {
 	    weather_layer_set_unread_messages(&weather_layer, email_tuple->value->int16, vibrate_tuple->value->int16);
 	}
-	link_monitor_handle_success();
 }
 
 void location(float latitude, float longitude, float altitude, float accuracy, void* context) {
