@@ -39,25 +39,26 @@ void weather_layer_init(WeatherLayer* weather_layer, GPoint pos) {
 	text_layer_set_text_alignment(&weather_layer->messages_layer, GTextAlignmentCenter);
 	text_layer_set_font(&weather_layer->messages_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FUTURA_35)));
 	layer_add_child(&weather_layer->layer, &weather_layer->messages_layer.layer);	
-	// Note absence of icon layer
+
+
 	weather_layer->has_weather_icon = false;
+	weather_layer->has_mail_icon = false;
     weather_layer->unread_messages = 0;
 }
 
 void weather_layer_set_icon(WeatherLayer* weather_layer, WeatherIcon icon) {
 	
-	// Remove any possible existing weather icon
-	if(weather_layer->has_weather_icon) {
+	if(weather_layer->has_mail_icon) {
 		layer_remove_from_parent(&weather_layer->icon_layer.layer.layer);
 		bmp_deinit_container(&weather_layer->icon_layer);
-		weather_layer->has_weather_icon = false;
+		weather_layer->has_mail_icon = false;
 	}
 	
 	// Add weather icon
 	bmp_init_container(WEATHER_ICONS[icon], &weather_layer->icon_layer);
 	layer_add_child(&weather_layer->layer, &weather_layer->icon_layer.layer.layer);
 	layer_set_frame(&weather_layer->icon_layer.layer.layer, GRect(9, 13, 60, 60));
-	weather_layer->has_weather_icon = true;
+	weather_layer->has_mail_icon = true;
 }
 
 void weather_layer_set_temperature(WeatherLayer* weather_layer, int16_t t) {
@@ -87,10 +88,10 @@ void weather_layer_set_temperature(WeatherLayer* weather_layer, int16_t t) {
 
 void weather_layer_set_unread_messages(WeatherLayer* weather_layer, int16_t m, int16_t vibrate) {
     
-	if (weather_layer->has_weather_icon) {
+	if (weather_layer->has_mail_icon) {
 		layer_remove_from_parent(&weather_layer->icon_layer.layer.layer);
 		bmp_deinit_container(&weather_layer->icon_layer);
-		weather_layer->has_weather_icon = false;
+		weather_layer->has_mail_icon = false;
 	}
 	
 	
@@ -98,7 +99,7 @@ void weather_layer_set_unread_messages(WeatherLayer* weather_layer, int16_t m, i
 	  bmp_init_container(RESOURCE_ID_ICON_EMAIL, &weather_layer->icon_layer);
       layer_add_child(&weather_layer->layer, &weather_layer->icon_layer.layer.layer);
   	  layer_set_frame(&weather_layer->icon_layer.layer.layer, GRect(10, 19, 30, 30));
-	  weather_layer->has_weather_icon = true;
+	  weather_layer->has_mail_icon = true;
 	  if (weather_layer->unread_messages != m && vibrate == 1) {
 		vibes_short_pulse();
 	  }
@@ -110,13 +111,12 @@ void weather_layer_set_unread_messages(WeatherLayer* weather_layer, int16_t m, i
 	  
     }
     else {
-	  //weather_layer->messages_str[] = '     ';
 	  weather_layer->unread_messages = 0;
 	  text_layer_set_text(&weather_layer->messages_layer, "      ");	
     }
 }
 
 void weather_layer_deinit(WeatherLayer* weather_layer) {
-	if(weather_layer->has_weather_icon)
+	if(weather_layer->has_mail_icon)
 		bmp_deinit_container(&weather_layer->icon_layer);
 }

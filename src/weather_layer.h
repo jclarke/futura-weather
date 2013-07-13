@@ -9,6 +9,7 @@ typedef struct {
 	TextLayer messages_layer;
 	TextLayer messages_layer_background;
 	bool has_weather_icon;
+	bool has_mail_icon;
 	char temp_str[5];
 	char messages_str[5];
 	int16_t unread_messages;
