@@ -30,8 +30,8 @@ PBL_APP_INFO(MY_UUID,
 #define WEATHER_KEY_TEMPERATURE 2
 #define EMAIL_KEY_UNREAD 3
 	
-#define WEATHER_HTTP_COOKIE 1949327671
-#define TIME_HTTP_COOKIE 1131038282
+#define WEATHER_HTTP_COOKIE 1949327679
+#define TIME_HTTP_COOKIE 1131038289
 
 Window window;          /* main window */
 TextLayer date_layer;   /* layer for the date */
@@ -64,7 +64,7 @@ void failed(int32_t cookie, int http_status, void* context) {
 	//located = false;
 	
 	//http_location_request();
-	request_weather();
+	//request_weather();
 }
 
 void success(int32_t cookie, int http_status, DictionaryIterator* received, void* context) {
@@ -215,7 +215,6 @@ void handle_init(AppContextRef ctx)
 	get_time(&tm);
     t.tick_time = &tm;
     t.units_changed = SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT;
-    srand(time(NULL));
 	handle_minute_tick(ctx, &t);
 }
 
@@ -263,11 +262,9 @@ void request_weather() {
 		return;
 	}
 
-    // Add a random number to the end of URL to prevent caching.
-    int r = rand() % 100;
     // Build the HTTP request
 	DictionaryIterator *body;
-	HTTPResult result = http_out_get(strcat("http://serverping.net:3001/get_data/", itoa(r)), WEATHER_HTTP_COOKIE, &body);
+	HTTPResult result = http_out_get(strcat("http://serverping.net:3001/get_data/", itoa(rand() % 20)), WEATHER_HTTP_COOKIE, &body);
 	if(result != HTTP_OK) {
 		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 		return;
@@ -275,6 +272,7 @@ void request_weather() {
 	dict_write_int32(body, WEATHER_KEY_LATITUDE, our_latitude);
 	dict_write_int32(body, WEATHER_KEY_LONGITUDE, our_longitude);
 	dict_write_cstring(body, WEATHER_KEY_UNIT_SYSTEM, UNIT_SYSTEM);
+
 	// Send it.
 	if(http_out_send() != HTTP_OK) {
 		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
