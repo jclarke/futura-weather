@@ -85,7 +85,7 @@ void weather_layer_set_temperature(WeatherLayer* weather_layer, int16_t t) {
 	text_layer_set_text(&weather_layer->temp_layer, weather_layer->temp_str);
 }
 
-void weather_layer_set_unread_messages(WeatherLayer* weather_layer, int16_t m) {
+void weather_layer_set_unread_messages(WeatherLayer* weather_layer, int16_t m, int16_t vibrate) {
     
 	if (weather_layer->has_weather_icon) {
 		layer_remove_from_parent(&weather_layer->icon_layer.layer.layer);
@@ -99,7 +99,7 @@ void weather_layer_set_unread_messages(WeatherLayer* weather_layer, int16_t m) {
       layer_add_child(&weather_layer->layer, &weather_layer->icon_layer.layer.layer);
   	  layer_set_frame(&weather_layer->icon_layer.layer.layer, GRect(10, 19, 30, 30));
 	  weather_layer->has_weather_icon = true;
-	  if (weather_layer->unread_messages != m) {
+	  if (weather_layer->unread_messages != m && vibrate == 1) {
 		vibes_short_pulse();
 	  }
 	  weather_layer->unread_messages = m;

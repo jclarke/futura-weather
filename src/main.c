@@ -12,7 +12,7 @@
 #define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD }
 
 PBL_APP_INFO(MY_UUID,
-             "Futura Joe", "Joe Clarke", // Modification of Futura Weather by Niknam Moslehi // Modification of "Roboto Weather" by Martin Rosinski
+             "Pebble Status Board", "Joe Clarke", // Modification of Futura Weather by Niknam Moslehi // Modification of "Roboto Weather" by Martin Rosinski
              1, 01, /* App version */
              RESOURCE_ID_IMAGE_MENU_ICON,
              APP_INFO_WATCH_FACE);
@@ -29,6 +29,7 @@ PBL_APP_INFO(MY_UUID,
 #define WEATHER_KEY_ICON 1
 #define WEATHER_KEY_TEMPERATURE 2
 #define EMAIL_KEY_UNREAD 3
+#define SEND_VIBRATE 4
 	
 #define WEATHER_HTTP_COOKIE 1949327679
 #define TIME_HTTP_COOKIE 1131038289
@@ -42,7 +43,7 @@ GFont font_hour;        /* font for hour */
 GFont font_minute;      /* font for minute */
 
 //Weather Stuff
-static int our_latitude, our_longitude;
+static int our_latitude, our_longitude, failed_count = 0;
 static bool located = false;
 
 WeatherLayer weather_layer;
@@ -50,24 +51,16 @@ WeatherLayer weather_layer;
 void request_data();
 
 void failed(int32_t cookie, int http_status, void* context) {
-	
-	/*
-	if(cookie == 0 || cookie == WEATHER_HTTP_COOKIE) {
-		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-		text_layer_set_text(&weather_layer.temp_layer, "---°   ");
+	failed_count = failed_count + 1;
+	if (failed_count > 10) {
+	  weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 	}
-	*/
-	
 	link_monitor_handle_failure(http_status);
-	
-	//Re-request the location and subsequently weather on next minute tick
-	//located = false;
-
 }
 
 void success(int32_t cookie, int http_status, DictionaryIterator* received, void* context) {
 	if(cookie != WEATHER_HTTP_COOKIE) return;
-	
+	failed_count = 0;
 	/*
 	Tuple* icon_tuple = dict_find(received, WEATHER_KEY_ICON);
 	if(icon_tuple) {
@@ -84,8 +77,9 @@ void success(int32_t cookie, int http_status, DictionaryIterator* received, void
 		weather_layer_set_temperature(&weather_layer, temperature_tuple->value->int16);
 	}
 	Tuple* email_tuple = dict_find(received, EMAIL_KEY_UNREAD);
+	Tuple* vibrate_tuple = dict_find(received, SEND_VIBRATE);
 	if (email_tuple) {
-	    weather_layer_set_unread_messages(&weather_layer, email_tuple->value->int16);
+	    weather_layer_set_unread_messages(&weather_layer, email_tuple->value->int16, vibrate_tuple->value->int16);
 	}
 	link_monitor_handle_success();
 }
@@ -253,13 +247,12 @@ void pbl_main(void *params)
 }
 
 void request_data() {
-    //weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-
+	
 	if(!located) {
 		http_location_request();
 		return;
 	}
-
+	
     // Build the HTTP request
 	DictionaryIterator *body;
 	HTTPResult result = http_out_get(strcat("http://serverping.net:3001/get_data/", itoa(rand() % 20)), WEATHER_HTTP_COOKIE, &body);
