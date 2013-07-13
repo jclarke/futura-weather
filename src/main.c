@@ -47,7 +47,7 @@ static bool located = false;
 
 WeatherLayer weather_layer;
 
-void request_weather();
+void request_data();
 
 void failed(int32_t cookie, int http_status, void* context) {
 	
@@ -62,9 +62,7 @@ void failed(int32_t cookie, int http_status, void* context) {
 	
 	//Re-request the location and subsequently weather on next minute tick
 	//located = false;
-	
-	//http_location_request();
-	//request_weather();
+
 }
 
 void success(int32_t cookie, int http_status, DictionaryIterator* received, void* context) {
@@ -97,15 +95,15 @@ void location(float latitude, float longitude, float altitude, float accuracy, v
 	our_latitude = latitude * 10000;
 	our_longitude = longitude * 10000;
 	located = true;
-	request_weather();
+	request_data();
 }
 
 void reconnect(void* context) {
 	located = false;
-	request_weather();
+	request_data();
 }
 
-void request_weather();
+void request_data();
 
 /* Called by the OS once per minute. Update the time and date.
 */
@@ -161,7 +159,7 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
 	   http_location_request();
 	}
 	else {
-	  request_weather();
+	  request_data();
 	}
 	
 }
@@ -254,7 +252,7 @@ void pbl_main(void *params)
     app_event_loop(params, &handlers);
 }
 
-void request_weather() {
+void request_data() {
     //weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 
 	if(!located) {
