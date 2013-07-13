@@ -50,15 +50,21 @@ WeatherLayer weather_layer;
 void request_weather();
 
 void failed(int32_t cookie, int http_status, void* context) {
+	
+	/*
 	if(cookie == 0 || cookie == WEATHER_HTTP_COOKIE) {
-		//weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-		//text_layer_set_text(&weather_layer.temp_layer, "---°   ");
+		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
+		text_layer_set_text(&weather_layer.temp_layer, "---°   ");
 	}
+	*/
 	
 	link_monitor_handle_failure(http_status);
 	
 	//Re-request the location and subsequently weather on next minute tick
-	located = false;
+	//located = false;
+	
+	//http_location_request();
+	request_weather();
 }
 
 void success(int32_t cookie, int http_status, DictionaryIterator* received, void* context) {
@@ -149,7 +155,15 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
 
     string_format_time(minute_text, sizeof(minute_text), ":%M", t->tick_time);
     time_layer_set_text(&time_layer, hour_text, minute_text);
-	http_location_request();
+
+	if(!located || !(t->tick_time->tm_min % 15)) {
+	   //Every 15 minutes, update location
+	   http_location_request();
+	}
+	else {
+	  request_weather();
+	}
+	
 }
 
 
@@ -201,7 +215,7 @@ void handle_init(AppContextRef ctx)
 	get_time(&tm);
     t.tick_time = &tm;
     t.units_changed = SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT;
-	
+    srand(time(NULL));
 	handle_minute_tick(ctx, &t);
 }
 
@@ -242,14 +256,18 @@ void pbl_main(void *params)
 }
 
 void request_weather() {
+    //weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
+
 	if(!located) {
 		http_location_request();
 		return;
 	}
 
+    // Add a random number to the end of URL to prevent caching.
+    int r = rand() % 100;
     // Build the HTTP request
 	DictionaryIterator *body;
-	HTTPResult result = http_out_get("https://serverping.net/kel2Dmdsn2/weather.php", WEATHER_HTTP_COOKIE, &body);
+	HTTPResult result = http_out_get(strcat("http://serverping.net:3001/get_data/", itoa(r)), WEATHER_HTTP_COOKIE, &body);
 	if(result != HTTP_OK) {
 		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 		return;

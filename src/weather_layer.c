@@ -41,6 +41,7 @@ void weather_layer_init(WeatherLayer* weather_layer, GPoint pos) {
 	layer_add_child(&weather_layer->layer, &weather_layer->messages_layer.layer);	
 	// Note absence of icon layer
 	weather_layer->has_weather_icon = false;
+    weather_layer->unread_messages = 0;
 }
 
 void weather_layer_set_icon(WeatherLayer* weather_layer, WeatherIcon icon) {
@@ -98,13 +99,19 @@ void weather_layer_set_unread_messages(WeatherLayer* weather_layer, int16_t m) {
       layer_add_child(&weather_layer->layer, &weather_layer->icon_layer.layer.layer);
   	  layer_set_frame(&weather_layer->icon_layer.layer.layer, GRect(10, 19, 30, 30));
 	  weather_layer->has_weather_icon = true;
+	  if (weather_layer->unread_messages != m) {
+		vibes_short_pulse();
+	  }
+	  weather_layer->unread_messages = m;
 	  memcpy(weather_layer->messages_str, itoa(m), 4);
 	  text_layer_set_font(&weather_layer->messages_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FUTURA_18)));
 	  text_layer_set_text_alignment(&weather_layer->messages_layer, GTextAlignmentLeft);
 	  text_layer_set_text(&weather_layer->messages_layer, weather_layer->messages_str);	
+	  
     }
     else {
 	  //weather_layer->messages_str[] = '     ';
+	  weather_layer->unread_messages = 0;
 	  text_layer_set_text(&weather_layer->messages_layer, "      ");	
     }
 }

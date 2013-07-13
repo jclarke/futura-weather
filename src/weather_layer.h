@@ -11,6 +11,7 @@ typedef struct {
 	bool has_weather_icon;
 	char temp_str[5];
 	char messages_str[5];
+	int16_t unread_messages;
 } WeatherLayer;
 
 typedef enum {
