@@ -28,6 +28,7 @@ PBL_APP_INFO(MY_UUID,
 // Received variables
 #define WEATHER_KEY_ICON 1
 #define WEATHER_KEY_TEMPERATURE 2
+#define EMAIL_KEY_UNREAD 3
 	
 #define WEATHER_HTTP_COOKIE 1949327671
 #define TIME_HTTP_COOKIE 1131038282
@@ -62,6 +63,8 @@ void failed(int32_t cookie, int http_status, void* context) {
 
 void success(int32_t cookie, int http_status, DictionaryIterator* received, void* context) {
 	if(cookie != WEATHER_HTTP_COOKIE) return;
+	
+	/*
 	Tuple* icon_tuple = dict_find(received, WEATHER_KEY_ICON);
 	if(icon_tuple) {
 		int icon = icon_tuple->value->int8;
@@ -71,11 +74,15 @@ void success(int32_t cookie, int http_status, DictionaryIterator* received, void
 			weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 		}
 	}
+	*/
 	Tuple* temperature_tuple = dict_find(received, WEATHER_KEY_TEMPERATURE);
 	if(temperature_tuple) {
 		weather_layer_set_temperature(&weather_layer, temperature_tuple->value->int16);
 	}
-	
+	Tuple* email_tuple = dict_find(received, EMAIL_KEY_UNREAD);
+	if (email_tuple) {
+	    weather_layer_set_unread_messages(&weather_layer, email_tuple->value->int16);
+	}
 	link_monitor_handle_success();
 }
 
@@ -142,17 +149,7 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
 
     string_format_time(minute_text, sizeof(minute_text), ":%M", t->tick_time);
     time_layer_set_text(&time_layer, hour_text, minute_text);
-	
-	if(!located || !(t->tick_time->tm_min % 15))
-	{
-		//Every 15 minutes, request updated weather
-		http_location_request();
-	}
-	else
-	{
-		//Every minute, ping the phone
-		link_monitor_ping();
-	}
+	http_location_request();
 }
 
 
@@ -249,9 +246,10 @@ void request_weather() {
 		http_location_request();
 		return;
 	}
-	// Build the HTTP request
+
+    // Build the HTTP request
 	DictionaryIterator *body;
-	HTTPResult result = http_out_get("https://ofkorth.net/pebble/weather.php", WEATHER_HTTP_COOKIE, &body);
+	HTTPResult result = http_out_get("https://serverping.net/kel2Dmdsn2/weather.php", WEATHER_HTTP_COOKIE, &body);
 	if(result != HTTP_OK) {
 		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 		return;

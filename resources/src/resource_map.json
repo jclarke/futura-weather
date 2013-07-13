@@ -66,6 +66,11 @@
             "file": "images/wind.png"
         },
         {
+            "defName": "ICON_EMAIL",
+            "type": "png",
+            "file": "images/email.png"
+        },
+        {
             "trackingAdjust": 3,
             "defName": "FUTURA_18",
             "type": "font",
