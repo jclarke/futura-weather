@@ -40,7 +40,6 @@ void weather_layer_init(WeatherLayer* weather_layer, GPoint pos) {
 	text_layer_set_font(&weather_layer->messages_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FUTURA_35)));
 	layer_add_child(&weather_layer->layer, &weather_layer->messages_layer.layer);	
 
-
 	weather_layer->has_weather_icon = false;
 	weather_layer->has_mail_icon = false;
     weather_layer->unread_messages = 0;
@@ -54,7 +53,7 @@ void weather_layer_set_icon(WeatherLayer* weather_layer, WeatherIcon icon) {
 		weather_layer->has_mail_icon = false;
 	}
 	
-	// Add weather icon
+	// Add icon
 	bmp_init_container(WEATHER_ICONS[icon], &weather_layer->icon_layer);
 	layer_add_child(&weather_layer->layer, &weather_layer->icon_layer.layer.layer);
 	layer_set_frame(&weather_layer->icon_layer.layer.layer, GRect(9, 13, 60, 60));
