@@ -29,6 +29,7 @@ PBL_APP_INFO(MY_UUID,
 #define WEATHER_KEY_TEMPERATURE 2
 #define EMAIL_KEY_UNREAD 3
 #define SEND_VIBRATE 4
+#define ACTIVATION_CODE 5
 	
 #define WEATHER_HTTP_COOKIE 1949327679
 #define TIME_HTTP_COOKIE 1131038289
@@ -42,7 +43,7 @@ GFont font_hour;        /* font for hour */
 GFont font_minute;      /* font for minute */
 
 //Weather Stuff
-static int our_latitude, our_longitude, failed_count = 0;
+static int our_latitude, our_longitude, failed_count = 0, random_number = 0;
 static bool located = false;
 
 WeatherLayer weather_layer;
@@ -70,15 +71,22 @@ void success(int32_t cookie, int http_status, DictionaryIterator* received, void
 		}
 	}
 	*/
-	Tuple* temperature_tuple = dict_find(received, WEATHER_KEY_TEMPERATURE);
-	if(temperature_tuple) {
+	Tuple* activation_tuple = dict_find(received, ACTIVATION_CODE);
+	
+	if (activation_tuple) {
+	   weather_layer_set_activation_code(&weather_layer, activation_tuple->value->int16);	
+    }
+    else {
+  	  Tuple* temperature_tuple = dict_find(received, WEATHER_KEY_TEMPERATURE);
+  	  if(temperature_tuple) {
 		weather_layer_set_temperature(&weather_layer, temperature_tuple->value->int16);
-	}
-	Tuple* email_tuple = dict_find(received, EMAIL_KEY_UNREAD);
-	Tuple* vibrate_tuple = dict_find(received, SEND_VIBRATE);
-	if (email_tuple) {
+	  }
+	  Tuple* email_tuple = dict_find(received, EMAIL_KEY_UNREAD);
+	  Tuple* vibrate_tuple = dict_find(received, SEND_VIBRATE);
+	  if (email_tuple) {
 	    weather_layer_set_unread_messages(&weather_layer, email_tuple->value->int16, vibrate_tuple->value->int16);
-	}
+	  }
+    }
 }
 
 void location(float latitude, float longitude, float altitude, float accuracy, void* context) {
@@ -150,7 +158,7 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
 	   http_location_request();
 	}
 	else {
-	  request_data();
+	  request_data(t->tick_time->tm_min);
 	}
 	
 }
@@ -178,14 +186,16 @@ void handle_init(AppContextRef ctx)
     font_date = fonts_load_custom_font(res_d);
     font_hour = fonts_load_custom_font(res_h);
     font_minute = fonts_load_custom_font(res_h);
-
+    
+    // Time Display
     time_layer_init(&time_layer, window.layer.frame);
     time_layer_set_text_color(&time_layer, GColorWhite);
     time_layer_set_background_color(&time_layer, GColorClear);
     time_layer_set_fonts(&time_layer, font_hour, font_minute);
     layer_set_frame(&time_layer.layer, TIME_FRAME);
     layer_add_child(&window.layer, &time_layer.layer);
-
+    
+    // Date Display
     text_layer_init(&date_layer, window.layer.frame);
     text_layer_set_text_color(&date_layer, GColorWhite);
     text_layer_set_background_color(&date_layer, GColorClear);
@@ -194,8 +204,8 @@ void handle_init(AppContextRef ctx)
     layer_set_frame(&date_layer.layer, DATE_FRAME);
     layer_add_child(&window.layer, &date_layer.layer);
 
-	// Add weather layer
-	weather_layer_init(&weather_layer, GPoint(0, 90)); //0, 100
+	// Status Board Display
+	weather_layer_init(&weather_layer, GPoint(0, 90));
 	layer_add_child(&window.layer, &weather_layer.layer);
 	
 	http_register_callbacks((HTTPCallbacks){.failure=failed,.success=success,.reconnect=reconnect,.location=location}, (void*)ctx);
@@ -244,26 +254,29 @@ void pbl_main(void *params)
 }
 
 void request_data() {
-	
-	if(!located) {
-		http_location_request();
-		return;
+	if (!located) {
+	  http_location_request();
+	  return;
 	}
-	
-    // Build the HTTP request
+	char * time_text;
+	time_text = itoa(time(NULL));
+	char * url = "http://serverping.net:3001/get_data/";
+	//url = "http://serverping.net:3001/get_data/";
+	strcpy(url,"http://serverping.net:3001/get_data/");
+	char * url1 = strcat(url, time_text);
 	DictionaryIterator *body;
-	HTTPResult result = http_out_get(strcat("http://serverping.net:3001/get_data/", itoa(rand() % 20)), WEATHER_HTTP_COOKIE, &body);
-	if(result != HTTP_OK) {
-		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-		return;
+	HTTPResult result = http_out_get(url1,WEATHER_HTTP_COOKIE, &body);
+	if (result != HTTP_OK) {
+      weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
+	  return;
 	}
+	
 	dict_write_int32(body, WEATHER_KEY_LATITUDE, our_latitude);
 	dict_write_int32(body, WEATHER_KEY_LONGITUDE, our_longitude);
 	dict_write_cstring(body, WEATHER_KEY_UNIT_SYSTEM, UNIT_SYSTEM);
-
-	// Send it.
-	if(http_out_send() != HTTP_OK) {
-		weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-		return;
+	
+	if (http_out_send() != HTTP_OK) {
+	  weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
+	  return;
 	}
 }
