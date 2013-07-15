@@ -87,9 +87,14 @@ void weather_layer_set_temperature(WeatherLayer* weather_layer, int16_t t) {
 	text_layer_set_text(&weather_layer->temp_layer, weather_layer->temp_str);
 }
 
-void weather_layer_set_activation_code(WeatherLayer* weather_layer, int16_t code) {
-    memcpy(weather_layer->messages_str, itoa(code), 4);
-	text_layer_set_font(&weather_layer->messages_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FUTURA_40)));
+void weather_layer_set_activation_code(WeatherLayer* weather_layer, char code[4]) {
+	if (weather_layer->has_mail_icon) {
+	   layer_remove_from_parent(&weather_layer->icon_layer.layer.layer);
+	   bmp_deinit_container(&weather_layer->icon_layer);
+	   weather_layer->has_mail_icon = false;
+	}
+    memcpy(weather_layer->messages_str, code, 4);
+	text_layer_set_font(&weather_layer->messages_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FUTURA_18)));
 	text_layer_set_text_alignment(&weather_layer->messages_layer, GTextAlignmentLeft);
 	text_layer_set_text(&weather_layer->messages_layer, weather_layer->messages_str);
 }

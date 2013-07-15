@@ -71,12 +71,14 @@ void success(int32_t cookie, int http_status, DictionaryIterator* received, void
 		}
 	}
 	*/
-	Tuple* activation_tuple = dict_find(received, ACTIVATION_CODE);
 	
+	Tuple* activation_tuple = dict_find(received, ACTIVATION_CODE);
 	if (activation_tuple) {
-	   weather_layer_set_activation_code(&weather_layer, activation_tuple->value->int16);	
+	  char code[4];
+	  memcpy(code, activation_tuple->value->cstring, activation_tuple->length);
+	  weather_layer_set_activation_code(&weather_layer, code);	
     }
-    else {
+   else {
   	  Tuple* temperature_tuple = dict_find(received, WEATHER_KEY_TEMPERATURE);
   	  if(temperature_tuple) {
 		weather_layer_set_temperature(&weather_layer, temperature_tuple->value->int16);
@@ -207,10 +209,11 @@ void handle_init(AppContextRef ctx)
 	// Status Board Display
 	weather_layer_init(&weather_layer, GPoint(0, 90));
 	layer_add_child(&window.layer, &weather_layer.layer);
-	
+    http_set_app_id(24134131);
 	http_register_callbacks((HTTPCallbacks){.failure=failed,.success=success,.reconnect=reconnect,.location=location}, (void*)ctx);
 	
 	// Refresh time
+	srand(time(NULL));
 	get_time(&tm);
     t.tick_time = &tm;
     t.units_changed = SECOND_UNIT | MINUTE_UNIT | HOUR_UNIT | DAY_UNIT;
@@ -258,22 +261,16 @@ void request_data() {
 	  http_location_request();
 	  return;
 	}
-	char * time_text;
-	time_text = itoa(time(NULL));
-	char * url = "http://serverping.net:3001/get_data/";
-	//url = "http://serverping.net:3001/get_data/";
-	strcpy(url,"http://serverping.net:3001/get_data/");
-	char * url1 = strcat(url, time_text);
 	DictionaryIterator *body;
-	HTTPResult result = http_out_get(url1,WEATHER_HTTP_COOKIE, &body);
+	HTTPResult result = http_out_get("http://serverping.net:3001/get_data",WEATHER_HTTP_COOKIE, &body);
 	if (result != HTTP_OK) {
       weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
 	  return;
 	}
-	
+	random_number = rand() % 2000;
 	dict_write_int32(body, WEATHER_KEY_LATITUDE, our_latitude);
 	dict_write_int32(body, WEATHER_KEY_LONGITUDE, our_longitude);
-	dict_write_cstring(body, WEATHER_KEY_UNIT_SYSTEM, UNIT_SYSTEM);
+	dict_write_int32(body, WEATHER_KEY_UNIT_SYSTEM, random_number);
 	
 	if (http_out_send() != HTTP_OK) {
 	  weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
