@@ -30,6 +30,8 @@ PBL_APP_INFO(MY_UUID,
 #define EMAIL_KEY_UNREAD 3
 #define SEND_VIBRATE 4
 #define ACTIVATION_CODE 5
+#define UNREAD_FACEBOOK_MESSAGES 6
+#define CHECKDIGITS 7
 	
 #define WEATHER_HTTP_COOKIE 1949327679
 #define TIME_HTTP_COOKIE 1131038289
@@ -52,42 +54,51 @@ void request_data();
 
 void failed(int32_t cookie, int http_status, void* context) {
 	failed_count = failed_count + 1;
-	if (failed_count > 10) {
-	  weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
+	if (failed_count > 3) {
+ 	  weather_layer_set_no_link_icon(&weather_layer);
 	}
 }
 
 void success(int32_t cookie, int http_status, DictionaryIterator* received, void* context) {
 	if(cookie != WEATHER_HTTP_COOKIE) return;
 	failed_count = 0;
-	/*
-	Tuple* icon_tuple = dict_find(received, WEATHER_KEY_ICON);
-	if(icon_tuple) {
-		int icon = icon_tuple->value->int8;
-		if(icon >= 0 && icon < 10) {
-			weather_layer_set_icon(&weather_layer, icon);
-		} else {
-			weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-		}
-	}
-	*/
 	
-	Tuple* activation_tuple = dict_find(received, ACTIVATION_CODE);
-	if (activation_tuple) {
-	  char code[4];
-	  memcpy(code, activation_tuple->value->cstring, activation_tuple->length);
-	  weather_layer_set_activation_code(&weather_layer, code);	
-    }
-   else {
-  	  Tuple* temperature_tuple = dict_find(received, WEATHER_KEY_TEMPERATURE);
-  	  if(temperature_tuple) {
-		weather_layer_set_temperature(&weather_layer, temperature_tuple->value->int16);
-	  }
-	  Tuple* email_tuple = dict_find(received, EMAIL_KEY_UNREAD);
-	  Tuple* vibrate_tuple = dict_find(received, SEND_VIBRATE);
-	  if (email_tuple) {
-	    weather_layer_set_unread_messages(&weather_layer, email_tuple->value->int16, vibrate_tuple->value->int16);
-	  }
+	Tuple* checkdigits_tuple = dict_find(received, CHECKDIGITS);
+	
+	if (checkdigits_tuple->value->int16 == random_number) {	
+		Tuple* activation_tuple = dict_find(received, ACTIVATION_CODE);
+		if (activation_tuple) {
+		  char code[4];
+		  memcpy(code, activation_tuple->value->cstring, activation_tuple->length);
+		  weather_layer_set_activation_code(&weather_layer, code);	
+	    }
+	   else {
+	  	  Tuple* icon_tuple = dict_find(received, WEATHER_KEY_ICON);
+		  if(icon_tuple) {
+			int icon = icon_tuple->value->int8;
+			if(icon >= 0 && icon < 10) {
+		       weather_layer_set_weather_icon(&weather_layer, icon);
+			} 
+		   }
+	      Tuple* temperature_tuple = dict_find(received, WEATHER_KEY_TEMPERATURE);
+	  	  if(temperature_tuple) {
+			weather_layer_set_temperature(&weather_layer, temperature_tuple->value->int16);
+		  }
+		  Tuple* email_tuple = dict_find(received, EMAIL_KEY_UNREAD);
+		  Tuple* vibrate_tuple = dict_find(received, SEND_VIBRATE);
+		  if (vibrate_tuple) {
+			if (vibrate_tuple->value->int16 == 1) {
+			  vibes_short_pulse();
+		    }
+		  }
+		  if (email_tuple) {
+		    weather_layer_set_unread_messages(&weather_layer, email_tuple->value->int16);
+		  }
+		  Tuple* facebook_tuple = dict_find(received, UNREAD_FACEBOOK_MESSAGES);
+		  if (facebook_tuple) {
+		    weather_layer_set_unread_facebook_messages(&weather_layer, facebook_tuple->value->int16);
+		  }
+	    }
     }
 }
 
@@ -103,8 +114,6 @@ void reconnect(void* context) {
 	located = false;
 	request_data();
 }
-
-void request_data();
 
 /* Called by the OS once per minute. Update the time and date.
 */
@@ -160,7 +169,7 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
 	   http_location_request();
 	}
 	else {
-	  request_data(t->tick_time->tm_min);
+	    request_data();
 	}
 	
 }
@@ -262,10 +271,10 @@ void request_data() {
 	  return;
 	}
 	DictionaryIterator *body;
-	HTTPResult result = http_out_get("http://serverping.net:3001/get_data",WEATHER_HTTP_COOKIE, &body);
+	HTTPResult result = http_out_get("https://pebbleboard.com/get_data",WEATHER_HTTP_COOKIE, &body);
 	if (result != HTTP_OK) {
-      weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
-	  return;
+       weather_layer_set_no_link_icon(&weather_layer);
+ 	   return;
 	}
 	random_number = rand() % 2000;
 	dict_write_int32(body, WEATHER_KEY_LATITUDE, our_latitude);
@@ -273,7 +282,7 @@ void request_data() {
 	dict_write_int32(body, WEATHER_KEY_UNIT_SYSTEM, random_number);
 	
 	if (http_out_send() != HTTP_OK) {
-	  weather_layer_set_icon(&weather_layer, WEATHER_ICON_NO_WEATHER);
+	  weather_layer_set_no_link_icon(&weather_layer);
 	  return;
 	}
 }
